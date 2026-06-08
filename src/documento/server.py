@@ -5,10 +5,10 @@ from pathlib import Path
 WEBSITE_DIR = Path(__file__).parent.parent / "website"
 
 
-def serve(spec: dict, host: str, port: int) -> None:
+def serve(spec: dict, theme: str, host: str, port: int) -> None:
     class HTTPHandler(http.server.SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs, directory=WEBSITE_DIR)
+            super().__init__(*args, **kwargs, directory=WEBSITE_DIR/theme)
 
         def do_GET(self) -> None:
             if self.path == "/openapi.json":

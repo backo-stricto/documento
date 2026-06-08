@@ -1,3 +1,4 @@
+from random import choices
 import argparse
 import json
 import urllib.request
@@ -46,6 +47,12 @@ def parse_args() -> argparse.Namespace:
         help="path to the backo metadata json file.",
     )
     parser_serve.add_argument(
+        "--theme",
+        help="theme to use for the documentation.",
+        choices=["swagger", "redoc"],
+        default="swagger",
+    )
+    parser_serve.add_argument(
         "--host",
         help="host to serve the documentation on.",
         default="localhost",
@@ -89,4 +96,4 @@ def main() -> None:
         spec = create_openapi_spec(metadata)
         # Serve the spec
         print(f"Serving documentation on {args.host} at port {args.port}")
-        serve(spec, args.host, args.port)
+        serve(spec, args.theme, args.host, args.port)
