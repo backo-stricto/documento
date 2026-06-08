@@ -34,9 +34,16 @@ def parse_args() -> argparse.Namespace:
         "serve",
         help="Serve the documentation locally.",
     )
-    parser_serve.add_argument(
-        "url",
-        help="backo backend's URL to document.",
+    from_group = parser_serve.add_mutually_exclusive_group(required=True)
+    from_group.add_argument(
+        "--from-url",
+        dest="url",
+        help="URL of backo backend.",
+    )
+    from_group.add_argument(
+        "--from-file",
+        dest="file",
+        help="path to the backo metadata json file.",
     )
     parser_serve.add_argument(
         "--host",
@@ -70,8 +77,14 @@ def main() -> None:
     # Handle the command serve
     elif args.command == "serve":
         # Get metadata from backo
-        with urllib.request.urlopen(f"{args.url}/_meta") as r:
-            metadata = json.load(r)
+        if args.url:
+            with urllib.request.urlopen(f"{args.url}/_meta") as r:
+                metadata = json.load(r)
+        elif args.file:
+            with open(args.file, "r") as f:
+                metadata = json.load(f)
+        else:
+            raise ValueError("Either --from-url or --from-file must be provided.")
         # Convert to OpenAPI spec
         spec = create_openapi_spec(metadata)
         # Serve the spec
