@@ -1,13 +1,5 @@
-import json
-from pathlib import Path
-
-
-def create_openapi_spec(backo_meta: Path):
-    # Load the Backo metadata
-    with open(backo_meta, "r") as f:
-        meta = json.load(f)
-
+def create_openapi_spec(backo_meta: dict):
     # TODO: transform to OpenAPI format
-    openapi = meta
+    openapi = backo_meta
 
     return openapi

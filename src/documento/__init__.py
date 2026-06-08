@@ -1,12 +1,9 @@
 import argparse
-import http.server
 import json
 import urllib.request
-from pathlib import Path
 
 from .openapi import create_openapi_spec
-
-WEBSITE_DIR = Path(__file__).parent.parent / "website"
+from .server import serve
 
 
 def parse_args() -> argparse.Namespace:
@@ -14,7 +11,9 @@ def parse_args() -> argparse.Namespace:
         description="Documento: OpenAPI documentation generator for backo backends."
     )
     subparsers = parser.add_subparsers(
-        title="Commands", dest="command", required=True
+        title="Commands",
+        dest="command",
+        required=True,
     )
     # Generate subcommand
     parser_generate = subparsers.add_parser(
@@ -52,26 +51,6 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def serve(spec: dict, host: str, port: int) -> None:
-    class HTTPHandler(http.server.SimpleHTTPRequestHandler):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs, directory=WEBSITE_DIR)
-
-        def do_GET(self) -> None:
-            if self.path == "/openapi.json":
-                body = json.dumps(spec).encode()
-                self.send_response(200)
-                self.send_header("Content-Type", "application/json")
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
-            else:
-                super().do_GET()
-
-    with http.server.HTTPServer((host, port), HTTPHandler) as server:
-        server.serve_forever()
-
-
 def main() -> None:
     # Parse command line arguments
     args = parse_args()
@@ -79,8 +58,11 @@ def main() -> None:
     # Handle the command generate
     if args.command == "generate":
         print(f"Generating OpenAPI yml from {args.meta}")
+        # Load the Backo metadata
+        with open(args.meta, "r") as f:
+            metadata = json.load(f)
         # Convert to OpenAPI spec
-        spec = create_openapi_spec(args.meta)
+        spec = create_openapi_spec(metadata)
         # Save to output file
         with open(args.output, "w") as f:
             json.dump(spec, f, indent=4)
