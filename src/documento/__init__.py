@@ -1,4 +1,3 @@
-from random import choices
 import argparse
 import json
 import urllib.request
@@ -11,6 +10,17 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Documento: OpenAPI documentation generator for backo backends."
     )
+    from_group = parser.add_mutually_exclusive_group(required=True)
+    from_group.add_argument(
+        "--from-url",
+        dest="url",
+        help="URL of backo backend.",
+    )
+    from_group.add_argument(
+        "--from-file",
+        dest="file",
+        help="path to the backo metadata json file.",
+    )
     subparsers = parser.add_subparsers(
         title="Commands",
         dest="command",
@@ -22,10 +32,6 @@ def parse_args() -> argparse.Namespace:
         help="Generate OpenAPI json from backo metadata json.",
     )
     parser_generate.add_argument(
-        "meta",
-        help="path to the backend metadata json file.",
-    )
-    parser_generate.add_argument(
         "--output",
         help="path to the output OpenAPI yml file.",
         default="./openapi.json",
@@ -34,17 +40,6 @@ def parse_args() -> argparse.Namespace:
     parser_serve = subparsers.add_parser(
         "serve",
         help="Serve the documentation locally.",
-    )
-    from_group = parser_serve.add_mutually_exclusive_group(required=True)
-    from_group.add_argument(
-        "--from-url",
-        dest="url",
-        help="URL of backo backend.",
-    )
-    from_group.add_argument(
-        "--from-file",
-        dest="file",
-        help="path to the backo metadata json file.",
     )
     parser_serve.add_argument(
         "--theme",
@@ -69,12 +64,21 @@ def main() -> None:
     # Parse command line arguments
     args = parse_args()
 
+    # Get metadata
+    if args.url:
+        # from backo _meta route
+        with urllib.request.urlopen(f"{args.url}/_meta") as r:
+            metadata = json.load(r)
+    elif args.file:
+        # from meta file
+        with open(args.file, "r") as f:
+            metadata = json.load(f)
+    else:
+        raise ValueError("Either --from-url or --from-file must be provided.")
+
     # Handle the command generate
     if args.command == "generate":
         print(f"Generating OpenAPI yml from {args.meta}")
-        # Load the Backo metadata
-        with open(args.meta, "r") as f:
-            metadata = json.load(f)
         # Convert to OpenAPI spec
         spec = create_openapi_spec(metadata)
         # Save to output file
@@ -83,15 +87,6 @@ def main() -> None:
 
     # Handle the command serve
     elif args.command == "serve":
-        # Get metadata from backo
-        if args.url:
-            with urllib.request.urlopen(f"{args.url}/_meta") as r:
-                metadata = json.load(r)
-        elif args.file:
-            with open(args.file, "r") as f:
-                metadata = json.load(f)
-        else:
-            raise ValueError("Either --from-url or --from-file must be provided.")
         # Convert to OpenAPI spec
         spec = create_openapi_spec(metadata)
         # Serve the spec
