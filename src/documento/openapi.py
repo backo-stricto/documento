@@ -229,7 +229,21 @@ def extract_routes(backo_meta: dict) -> Iterator[Route]:
                             pass
             if route["requestBody"]:
                 for body in route["requestBody"]:
-                    ...  # TODO
+                    match body["type"]:
+                        case "item":
+                            method.add_request_body(
+                                {
+                                    "application/json": {
+                                        "schema": {
+                                            "$ref": f"#/components/schemas/{route['collection']}"
+                                        }
+                                    }
+                                }
+                            )
+                        case "itempart":
+                            ...
+                        case "multipart":
+                            ...
             if route["responses"]:
                 for resp in route["responses"]:
                     ...  # TODO
