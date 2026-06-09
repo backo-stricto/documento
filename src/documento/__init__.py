@@ -78,7 +78,7 @@ def main() -> None:
 
     # Handle the command generate
     if args.command == "generate":
-        print(f"Generating OpenAPI yml from {args.meta}")
+        print(f"Generating OpenAPI yml from {args.url if args.url else args.file}")
         # Convert to OpenAPI spec
         spec = create_openapi_spec(metadata)
         # Save to output file
