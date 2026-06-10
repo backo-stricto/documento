@@ -88,9 +88,9 @@ def create_openapi_spec(backo_meta: dict):
                 openapi["paths"][route.path][method.mode]["parameters"] = (
                     method.parameters
                 )
-            if len(method.requestBody) > 0:
+            if len(method.request_body["content"]) > 0:
                 openapi["paths"][route.path][method.mode]["requestBody"] = (
-                    method.requestBody
+                    method.request_body
                 )
             if len(method.responses) > 0:
                 openapi["paths"][route.path][method.mode]["responses"] = (
@@ -119,12 +119,12 @@ class Method:
     summary: str
     operationId: str
     mode: Literal["get", "post", "put", "delete", "patch"]
-    requestBody: dict = field(default_factory=dict)
+    request_body: dict[str, dict] = field(default_factory=lambda: {"content": {}})
     parameters: list = field(default_factory=list)
     responses: dict = field(default_factory=dict)
 
-    def add_response(self, status_code: str, description: str, content: dict):
-        self.responses[status_code] = {
+    def add_response(self, status_code: int, description: str, content: dict):
+        self.responses[str(status_code)] = {
             "description": description,
             "content": content,
         }
@@ -132,8 +132,8 @@ class Method:
     def add_parameter(self, parameter: dict):
         self.parameters.append(parameter)
 
-    def add_request_body(self, content: dict):
-        self.requestBody = {"content": content}
+    def add_request_body(self, type: str, content: dict):
+        self.request_body["content"][type] = content
 
 
 @dataclass
@@ -151,18 +151,9 @@ def extract_schemas(backo_meta: dict) -> Iterator[Schema]:
             title=collection.get("name", ""),
             description=collection.get("description", ""),
         )
-        schema_with_id = Schema(
-            title=f"{collection.get('name', '')}_identified",
-            description=collection.get("description", ""),
-        )
         for name, infos in collection["item"]["sub_scheme"].items():
-            # remove _id and _meta fields
             if name == "_meta":
                 continue
-            elif name == "_id":
-                schema_with_id.add_property(
-                    name, "string", infos.get("description", "")
-                )
             else:
                 type = "null"
                 if "String" in infos["types"]:
@@ -178,14 +169,11 @@ def extract_schemas(backo_meta: dict) -> Iterator[Schema]:
                 elif "List" in infos["types"]:
                     type = "array"
                 schema.add_property(name, type, infos.get("description", ""))
-                schema_with_id.add_property(name, type, infos.get("description", ""))
 
             if infos["required"]:
                 schema.required.append(name)
-                schema_with_id.required.append(name)
 
         yield schema
-        yield schema_with_id
 
 
 def extract_routes(backo_meta: dict) -> Iterator[Route]:
@@ -193,6 +181,7 @@ def extract_routes(backo_meta: dict) -> Iterator[Route]:
         routes: dict[str, Route] = {}
 
         for route in collection["routes"]:
+            print(f"  - route: {route['method']} {route['url']}")
             if route["url"] not in routes:
                 routes[route["url"]] = Route(path=route["url"])
 
@@ -201,6 +190,7 @@ def extract_routes(backo_meta: dict) -> Iterator[Route]:
                 operationId=f"{route['method'].lower()}_{route['url']}",
                 summary=route["description"],
             )
+
             if route["parameters"]:
                 for param in route["parameters"]:
                     match param["mode"]:
@@ -227,26 +217,112 @@ def extract_routes(backo_meta: dict) -> Iterator[Route]:
                             pass
                         case "cookie":
                             pass
-            if route["requestBody"]:
-                for body in route["requestBody"]:
+
+            if route["request_body"]:
+                for body in route["request_body"]:
                     match body["type"]:
                         case "item":
                             method.add_request_body(
+                                "application/json",
+                                {
+                                    "schema": {
+                                        "$ref": f"#/components/schemas/{collection['name']}"
+                                    }
+                                },
+                            )
+
+                        case "itempart":
+                            method.add_request_body(
+                                "application/json",
+                                {
+                                    "schema": {
+                                        "$ref": f"#/components/schemas/{collection['name']}"
+                                    }
+                                },
+                            )
+
+                        case "multipart":
+                            method.add_request_body(
+                                "multipart/form-data",
+                                {
+                                    "schema": {
+                                        "properties": {
+                                            "_json": {
+                                                "$ref": f"#/components/schemas/{collection['name']}"
+                                            }
+                                        }
+                                    }
+                                },
+                            )
+
+                        case "json-query":
+                            method.add_request_body(
+                                "application/json",
+                                {"schema": {"$ref": "#/components/schemas/json-query"}},
+                            )
+
+                        case "json-patch":
+                            method.add_request_body(
+                                "application/json",
+                                {"schema": {"$ref": "#/components/schemas/json-patch"}},
+                            )
+
+                        case "json":
+                            method.add_request_body(
+                                "application/json", {"schema": {"type": "object"}}
+                            )
+
+            if route["responses"]:
+                for resp in route["responses"]:
+                    match resp["content"]:
+                        case "item":
+                            method.add_response(
+                                resp["code"],
+                                resp["description"],
                                 {
                                     "application/json": {
                                         "schema": {
-                                            "$ref": f"#/components/schemas/{route['collection']}"
+                                            "$ref": f"#/components/schemas/{collection['name']}"
                                         }
                                     }
-                                }
+                                },
                             )
-                        case "itempart":
-                            ...
-                        case "multipart":
-                            ...
-            if route["responses"]:
-                for resp in route["responses"]:
-                    ...  # TODO
+                        case "itemlist":
+                            method.add_response(
+                                resp["code"],
+                                resp["description"],
+                                {
+                                    "application/json": {
+                                        "schema": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": f"#/components/schemas/{collection['name']}"
+                                            },
+                                        }
+                                    }
+                                },
+                            )
+                        case "meta" | "json":
+                            method.add_response(
+                                resp["code"],
+                                resp["description"],
+                                {"application/json": {"schema": {"type": "object"}}},
+                            )
+                        case "none":
+                            method.add_response(resp["code"], resp["description"], {})
+                        case "error":
+                            method.add_response(
+                                resp["code"],
+                                resp["description"],
+                                {
+                                    "application/json": {
+                                        "schema": {
+                                            "type": "object",
+                                            "properties": {"error": {"type": "string"}},
+                                        }
+                                    }
+                                },
+                            )
 
             routes[route["url"]].add_method(method)
 
