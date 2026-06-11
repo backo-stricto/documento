@@ -1,11 +1,16 @@
 import argparse
 import json
 import urllib.request
+import os
 
-from .server import serve
+from .server import serve, THEMES_DIR
 
 
 def parse_args() -> argparse.Namespace:
+    # get all existings themes
+    themes_list = [f.name for f in os.scandir(THEMES_DIR) if f.is_dir()]
+
+    # Setup argument parser
     parser = argparse.ArgumentParser(
         description="Documento: OpenAPI documentation server for backo."
     )
@@ -13,8 +18,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--theme",
         help="theme to use for the documentation.",
-        choices=["swagger", "redoc"],
-        default="swagger",
+        choices=themes_list,
+        default=themes_list[-1],
     )
     parser.add_argument(
         "--host",
