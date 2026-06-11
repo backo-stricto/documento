@@ -1,9 +1,7 @@
 import argparse
-import json
-import urllib.request
 import os
 
-from .server import serve, THEMES_DIR
+from .server import THEMES_DIR, serve
 
 
 def parse_args() -> argparse.Namespace:
@@ -38,8 +36,5 @@ def main() -> None:
     # Parse command line arguments
     args = parse_args()
 
-    # Get OpenAPI specification from backo
-    with urllib.request.urlopen(f"{args.url}/openapi") as req:
-        openapi_spec = json.load(req)
     # Serve the OpenAPI documentation
-    serve(openapi_spec, args.theme, args.host, args.port)
+    serve(f"{args.url}/openapi", args.theme, args.host, args.port)
