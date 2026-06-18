@@ -3,7 +3,7 @@ import json
 import urllib.request
 from pathlib import Path
 
-THEMES_DIR = Path(__file__).parent.parent / "themes"
+THEMES_DIR = Path(__file__).parent / "themes"
 
 
 def serve(spec_url: str, theme: str, host: str, port: int) -> None:
