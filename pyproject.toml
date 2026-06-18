@@ -1,11 +1,10 @@
 [project]
 name = "documento"
-version = "0.1.0"
-description = "Generate documentation for backo"
+version = "0.1.1"
+description = "Display documentation for backo"
+authors = [{ name = "Théo BL", email = "theo.biasutto-lervat@inria.fr" }]
+license = { file = "LICENSE" }
 readme = "README.md"
-authors = [
-    { name = "Théo BL", email = "theo.biasutto-lervat@inria.fr" }
-]
 requires-python = ">=3.12"
 dependencies = []
 
