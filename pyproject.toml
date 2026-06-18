@@ -1,6 +1,6 @@
 [project]
 name = "documento"
-version = "0.1.1"
+version = "0.1.2"
 description = "Display documentation for backo"
 authors = [{ name = "Théo BL", email = "theo.biasutto-lervat@inria.fr" }]
 license = { file = "LICENSE" }
