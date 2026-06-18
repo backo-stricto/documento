@@ -2,6 +2,11 @@ import http.server
 import json
 import urllib.request
 from pathlib import Path
+import logging
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - [%(levelname)s] %(message)s"
+)
 
 THEMES_DIR = Path(__file__).parent / "themes"
 
@@ -26,6 +31,10 @@ def serve(spec_url: str, theme: str, host: str, port: int) -> None:
                 super().do_GET()
 
     with http.server.HTTPServer((host, port), HTTPHandler) as server:
-        print(f"Serving documentation at http://{host}:{port}")
-        print("Press Ctrl+C to quit")
-        server.serve_forever()
+        logging.info(f"Serving documentation at http://{host}:{port}")
+        logging.info("Press Ctrl+C to quit")
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            logging.info("Shutting down server")
+            server.server_close()
