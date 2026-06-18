@@ -27,4 +27,5 @@ def serve(spec_url: str, theme: str, host: str, port: int) -> None:
 
     with http.server.HTTPServer((host, port), HTTPHandler) as server:
         print(f"Serving documentation at http://{host}:{port}")
+        print("Press Ctrl+C to quit")
         server.serve_forever()
