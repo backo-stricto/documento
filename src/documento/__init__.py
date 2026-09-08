@@ -27,6 +27,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--port",
         help="port used to serve the documentation.",
+        type=int,
         default=8000,
     )
     return parser.parse_args()
